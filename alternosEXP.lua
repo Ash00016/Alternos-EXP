@@ -16,6 +16,8 @@ local PlayerBoxToggle = Instance.new("TextButton")
 local PlayerTraceToggle = Instance.new("TextButton")
 local PlayerNameToggle = Instance.new("TextButton")
 
+local UserInputService = game:GetService("UserInputService")
+
 -- Parent the ScreenGui to the player's PlayerGui
 ScreenGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
 
@@ -359,3 +361,8 @@ end
 
 local Minimized = false
 MinimizeButton.MouseButton1Click:Connect(minimizeGuide)
+
+-- Close button functionality
+CloseButton.MouseButton1Click:Connect(function()
+    ScreenGui:Destroy()
+end)
