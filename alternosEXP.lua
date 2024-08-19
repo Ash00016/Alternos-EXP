@@ -148,9 +148,10 @@ PlayerNameToggle = createToggleButton("PlayerName", "Player Name", 4)
 -- Variables to track if guide is minimized
 local isMinimized = false
 local minimizedSize = UDim2.new(0, 100, 0, 30)
-local minimizedPosition = UDim2.new(0.5, -50, 0.5, -15)
+local normalSize = UDim2.new(0, 500, 0, 300)
 
 -- Script to handle the toggle functionality for player highlights and other features
+
 local toggles = {
     PlayerHighlightToggle = false,
     PlayerBoxToggle = false,
@@ -196,7 +197,6 @@ local function createPlayerBox(enable)
                     box.ZIndex = 0
                     box.AlwaysOnTop = true
                     box.Color3 = Color3.fromRGB(255, 0, 0)
-                    box.Transparency = 1  -- Set transparency to make the box outline only
                 end
             else
                 if box then
@@ -207,72 +207,183 @@ local function createPlayerBox(enable)
     end
 end
 
--- Ensure guide remains visible on reset
-game.Players.PlayerAdded:Connect(function(player)
-    if player ~= game.Players.LocalPlayer then
-        -- Set up player features (e.g., highlight, box, etc.)
-        if toggles.PlayerHighlightToggle then
-            highlightPlayers(true)
-        end
-        if toggles.PlayerBoxToggle then
-            createPlayerBox(true)
-        end
-        if toggles.PlayerTraceToggle then
-            tracePlayers(true)
-        end
-        if toggles.PlayerNameToggle then
-            showPlayerNames(true)
+-- Function to trace players with a line
+local function tracePlayers(enable)
+    -- Clean up any existing traces
+    for _, child in pairs(game.Workspace:GetChildren()) do
+        if child:IsA("Beam") and child.Name == "PlayerTrace" then
+            child:Destroy()
         end
     end
-end)
 
--- Monitor player reset events
-game.Players.PlayerRemoving:Connect(function(player)
-    if player ~= game.Players.LocalPlayer then
-        -- Cleanup on player removal if needed
+    if enable then
+        for _, player in pairs(game.Players:GetPlayers()) do
+            if player ~= game.Players.LocalPlayer then
+                local root = player.Character:FindFirstChild("HumanoidRootPart")
+                if root then
+                    local attachment0 = Instance.new("Attachment", root)
+                    local attachment1 = Instance.new("Attachment", game.Players.LocalPlayer.Character.HumanoidRootPart)
+
+                    local beam = Instance.new("Beam")
+                    beam.Name = "PlayerTrace"
+                    beam.Parent = game.Workspace
+                    beam.Attachment0 = attachment0
+                    beam.Attachment1 = attachment1
+                    beam.FaceCamera = true
+                    beam.Color = ColorSequence.new(Color3.fromRGB(255, 0, 0))
+                    beam.Width0 = 0.1
+                    beam.Width1 = 0.1
+                    beam.Texture = "rbxassetid://4483345998"  -- Optional: Add a texture
+                    beam.TextureSpeed = 2
+                end
+            end
+        end
     end
+end
+
+-- Function to show/hide player names
+local function showPlayerNames(enable)
+    for _, player in pairs(game.Players:GetPlayers()) do
+        if player ~= game.Players.LocalPlayer then
+            local nameTag = player.Character:FindFirstChild("NameTag")
+            if enable then
+                if not nameTag then
+                    nameTag = Instance.new("BillboardGui")
+                    nameTag.Name = "NameTag"
+                    nameTag.Parent = player.Character
+                    nameTag.Adornee = player.Character.Head
+                    nameTag.Size = UDim2.new(0, 100, 0, 20)
+                    nameTag.StudsOffset = Vector3.new(0, 2, 0)
+
+                    local textLabel = Instance.new("TextLabel")
+                    textLabel.Parent = nameTag
+                    textLabel.Size = UDim2.new(1, 0, 1, 0)
+                    textLabel.Text = player.Name
+                    textLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+                    textLabel.BackgroundTransparency = 1
+                end
+            else
+                if nameTag then
+                    nameTag:Destroy()
+                end
+            end
+        end
+    end
+end
+
+-- Connect toggle buttons to corresponding functions
+PlayerHighlightToggle.MouseButton1Click:Connect(function()
+    toggles.PlayerHighlightToggle = not toggles.PlayerHighlightToggle
+    PlayerHighlightToggle.BackgroundColor3 = toggles.PlayerHighlightToggle and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 0, 0)
+    highlightPlayers(toggles.PlayerHighlightToggle)
 end)
 
--- Ensure guide is always draggable
+PlayerBoxToggle.MouseButton1Click:Connect(function()
+    toggles.PlayerBoxToggle = not toggles.PlayerBoxToggle
+    PlayerBoxToggle.BackgroundColor3 = toggles.PlayerBoxToggle and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 0, 0)
+    createPlayerBox(toggles.PlayerBoxToggle)
+end)
+
+PlayerTraceToggle.MouseButton1Click:Connect(function()
+    toggles.PlayerTraceToggle = not toggles.PlayerTraceToggle
+    PlayerTraceToggle.BackgroundColor3 = toggles.PlayerTraceToggle and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 0, 0)
+    tracePlayers(toggles.PlayerTraceToggle)
+end)
+
+PlayerNameToggle.MouseButton1Click:Connect(function()
+    toggles.PlayerNameToggle = not toggles.PlayerNameToggle
+    PlayerNameToggle.BackgroundColor3 = toggles.PlayerNameToggle and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 0, 0)
+    showPlayerNames(toggles.PlayerNameToggle)
+end)
+
+-- Function to make the frame draggable
+local function makeDraggable(frame)
+    local dragging, dragInput, dragStart, startPos
+
+    local function update(input)
+        local delta = input.Position - dragStart
+        frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+
+    frame.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            dragStart = input.Position
+            startPos = frame.Position
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+
+    frame.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement then
+            dragInput = input
+        end
+    end)
+
+    UserInputService.InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
+            update(input)
+        end
+    end)
+end
+
+-- Make the guide draggable
 makeDraggable(MainFrame)
 
--- Minimize Button functionality
-MinimizeButton.MouseButton1Click:Connect(function()
+-- Function to handle the minimization and maximization of the guide
+local function minimizeGuide()
+    local function animateResize(targetSize, duration)
+        local startTime = tick()
+        local startSize = MainFrame.Size
+        local startPosition = MainFrame.Position
+        while tick() - startTime < duration do
+            local alpha = (tick() - startTime) / duration
+            MainFrame.Size = UDim2.new(
+                startSize.X.Scale,
+                startSize.X.Offset + (targetSize.X.Offset - startSize.X.Offset) * alpha,
+                startSize.Y.Scale,
+                startSize.Y.Offset + (targetSize.Y.Offset - startSize.Y.Offset) * alpha
+            )
+            MainFrame.Position = UDim2.new(
+                startPosition.X.Scale,
+                startPosition.X.Offset + (targetSize.X.Offset - startSize.X.Offset) / 2,
+                startPosition.Y.Scale,
+                startPosition.Y.Offset + (targetSize.Y.Offset - startSize.Y.Offset) / 2
+            )
+            wait()
+        end
+        MainFrame.Size = targetSize
+        MainFrame.Position = UDim2.new(
+            startPosition.X.Scale,
+            startPosition.X.Offset + (targetSize.X.Offset - startSize.X.Offset) / 2,
+            startPosition.Y.Scale,
+            startPosition.Y.Offset + (targetSize.Y.Offset - startSize.Y.Offset) / 2
+        )
+    end
+
     if isMinimized then
         -- Maximize the guide
-        MainFrame.Size = UDim2.new(0, 500, 0, 300)
-        MainFrame.Position = UDim2.new(0.5, -250, 0.5, -150)
-        MinimizeButton.Text = "-"
+        animateResize(UDim2.new(0, 500, 0, 300), 0.3)
+        MainFrame.Visible = true
         isMinimized = false
+        MinimizeButton.Text = "-"
     else
         -- Minimize the guide
-        MainFrame.Size = UDim2.new(0, 100, 0, 30)
-        MainFrame.Position = UDim2.new(0.5, -50, 0.5, -15)
-        MinimizeButton.Text = "+"
+        animateResize(UDim2.new(0, 100, 0, 30), 0.3)
+        MainFrame.Visible = true
         isMinimized = true
+        MinimizeButton.Text = "+"
     end
-end)
+end
+
+-- Minimize Button functionality
+MinimizeButton.MouseButton1Click:Connect(minimizeGuide)
 
 -- Close Button functionality
 CloseButton.MouseButton1Click:Connect(function()
     ScreenGui:Destroy()
-end)
-
--- Handle player reset and new players joining
-game.Players.PlayerAdded:Connect(function(player)
-    if player.Character then
-        -- Ensure that the player features (highlight, box, etc.) work for new players
-        if toggles.PlayerHighlightToggle then
-            highlightPlayers(true)
-        end
-        if toggles.PlayerBoxToggle then
-            createPlayerBox(true)
-        end
-        if toggles.PlayerTraceToggle then
-            tracePlayers(true)
-        end
-        if toggles.PlayerNameToggle then
-            showPlayerNames(true)
-        end
-    end
 end)
