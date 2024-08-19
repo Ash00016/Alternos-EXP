@@ -332,16 +332,35 @@ end
 
 makeDraggable(MainFrame)
 
+-- Function to handle the minimization and maximization of the guide
 local function minimizeGuide()
     local function animateResize(targetSize, duration)
         local startTime = tick()
         local startSize = MainFrame.Size
+        local startPosition = MainFrame.Position
         while tick() - startTime < duration do
             local alpha = (tick() - startTime) / duration
-            MainFrame.Size = UDim2.new(startSize.X.Scale, startSize.X.Offset + (targetSize.X.Offset - startSize.X.Offset) * alpha, startSize.Y.Scale, startSize.Y.Offset + (targetSize.Y.Offset - startSize.Y.Offset) * alpha)
+            MainFrame.Size = UDim2.new(
+                startSize.X.Scale,
+                startSize.X.Offset + (targetSize.X.Offset - startSize.X.Offset) * alpha,
+                startSize.Y.Scale,
+                startSize.Y.Offset + (targetSize.Y.Offset - startSize.Y.Offset) * alpha
+            )
+            MainFrame.Position = UDim2.new(
+                startPosition.X.Scale,
+                startPosition.X.Offset + (targetSize.X.Offset - startSize.X.Offset) / 2,
+                startPosition.Y.Scale,
+                startPosition.Y.Offset + (targetSize.Y.Offset - startSize.Y.Offset) / 2
+            )
             wait()
         end
         MainFrame.Size = targetSize
+        MainFrame.Position = UDim2.new(
+            startPosition.X.Scale,
+            startPosition.X.Offset + (targetSize.X.Offset - startSize.X.Offset) / 2,
+            startPosition.Y.Scale,
+            startPosition.Y.Offset + (targetSize.Y.Offset - startSize.Y.Offset) / 2
+        )
     end
 
     if Minimized then
@@ -352,17 +371,20 @@ local function minimizeGuide()
         MinimizeButton.Text = "-"
     else
         -- Minimize the guide
-        animateResize(UDim2.new(0, 100, 0, 50), 0.3)
+        animateResize(UDim2.new(0, 100, 0, 30), 0.3)
         MainFrame.Visible = true
         Minimized = true
         MinimizeButton.Text = "+"
     end
 end
 
-local Minimized = false
+-- Make the guide draggable
+makeDraggable(MainFrame)
+
+-- Minimize Button functionality
 MinimizeButton.MouseButton1Click:Connect(minimizeGuide)
 
--- Close button functionality
+-- Close Button functionality
 CloseButton.MouseButton1Click:Connect(function()
     ScreenGui:Destroy()
 end)
