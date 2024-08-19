@@ -143,6 +143,11 @@ PlayerBoxToggle = createToggleButton("PlayerBox", "Player Box", 2)
 PlayerTraceToggle = createToggleButton("PlayerTrace", "Player Trace", 3)
 PlayerNameToggle = createToggleButton("PlayerName", "Player Name", 4)
 
+-- Variables to track if guide is minimized
+local isMinimized = false
+local minimizedSize = UDim2.new(0, 100, 0, 30)
+local minimizedPosition = UDim2.new(0.5, -50, 0.5, -15)
+
 -- Script to handle the toggle functionality for player highlights and other features
 
 local toggles = {
@@ -156,18 +161,20 @@ local toggles = {
 local function highlightPlayers(enable)
     for _, player in pairs(game.Players:GetPlayers()) do
         if player ~= game.Players.LocalPlayer then
-            local highlight = player.Character:FindFirstChild("Highlight")
-            if enable then
-                if not highlight then
-                    highlight = Instance.new("Highlight")
-                    highlight.Parent = player.Character
-                    highlight.Adornee = player.Character
-                    highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-                    highlight.FillColor = Color3.fromRGB(255, 0, 0)
-                end
-            else
-                if highlight then
-                    highlight:Destroy()
+            local highlight = player.Character and player.Character:FindFirstChild("Highlight")
+            if player.Character then
+                if enable then
+                    if not highlight then
+                        highlight = Instance.new("Highlight")
+                        highlight.Parent = player.Character
+                        highlight.Adornee = player.Character
+                        highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+                        highlight.FillColor = Color3.fromRGB(255, 0, 0)
+                    end
+                else
+                    if highlight then
+                        highlight:Destroy()
+                    end
                 end
             end
         end
@@ -286,3 +293,69 @@ PlayerNameToggle.MouseButton1Click:Connect(function()
     PlayerNameToggle.BackgroundColor3 = toggles.PlayerNameToggle and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 0, 0)
     showPlayerNames(toggles.PlayerNameToggle)
 end)
+
+local function makeDraggable(frame)
+    local dragging, dragInput, dragStart, startPos
+
+    local function update(input)
+        local delta = input.Position - dragStart
+        frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+
+    frame.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            dragStart = input.Position
+            startPos = frame.Position
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+
+    frame.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement then
+            dragInput = input
+        end
+    end)
+
+    UserInputService.InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
+            update(input)
+        end
+    end)
+end
+
+makeDraggable(MainFrame)
+
+local function minimizeGuide()
+    local function animateResize(targetSize, duration)
+        local startTime = tick()
+        local startSize = MainFrame.Size
+        while tick() - startTime < duration do
+            local alpha = (tick() - startTime) / duration
+            MainFrame.Size = UDim2.new(startSize.X.Scale, startSize.X.Offset + (targetSize.X.Offset - startSize.X.Offset) * alpha, startSize.Y.Scale, startSize.Y.Offset + (targetSize.Y.Offset - startSize.Y.Offset) * alpha)
+            wait()
+        end
+        MainFrame.Size = targetSize
+    end
+
+    if Minimized then
+        -- Maximize the guide
+        animateResize(UDim2.new(0, 500, 0, 300), 0.3)
+        MainFrame.Visible = true
+        Minimized = false
+        MinimizeButton.Text = "-"
+    else
+        -- Minimize the guide
+        animateResize(UDim2.new(0, 100, 0, 50), 0.3)
+        MainFrame.Visible = true
+        Minimized = true
+        MinimizeButton.Text = "+"
+    end
+end
+
+local Minimized = false
+MinimizeButton.MouseButton1Click:Connect(minimizeGuide)
