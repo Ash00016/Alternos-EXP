@@ -50,13 +50,21 @@ local function createTab(name, position)
     button.Text = name
     button.TextColor3 = Color3.fromRGB(255, 255, 255)
     button.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    button.MouseEnter:Connect(function()
+        button.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+    end)
+    button.MouseLeave:Connect(function()
+        button.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    end)
     button.Parent = sidebar
     
     return button
 end
 
 local homeTab = createTab("Home", 10)
--- Add more tabs as needed
+local combatTab = createTab("Combat", 60)
+local worldTab = createTab("World", 110)
+local settingTab = createTab("Setting", 160)
 
 local closeButton = Instance.new("TextButton")
 closeButton.Size = UDim2.new(0, 25, 0, 25)
@@ -77,7 +85,7 @@ minimizeButton.Parent = mainFrame
 local homePage = Instance.new("Frame")
 homePage.Size = UDim2.new(1, 0, 1, 0)
 homePage.Position = UDim2.new(0, 0, 0, 0)
-homePage.Visible = false
+homePage.Visible = true
 homePage.Parent = pages
 
 local function createToggleOption(name, position)
@@ -94,7 +102,7 @@ local function createToggleOption(name, position)
     toggle.Size = UDim2.new(0, 40, 0, 40)
     toggle.Position = UDim2.new(0, 220, 0, position)
     toggle.Text = ""
-    toggle.BackgroundColor3 = Color3.fromRGB(255,0, 0) -- Red for off
+    toggle.BackgroundColor3 = Color3.fromRGB(255, 0, 0) -- Red for off
     toggle.Parent = homePage
     
     toggle.MouseButton1Click:Connect(function()
@@ -110,7 +118,6 @@ local playerBoxToggle = createToggleOption("Player Box", 60)
 local playerTraceToggle = createToggleOption("Player Trace", 110)
 local playerNameToggle = createToggleOption("Player Name", 160)
 
--- Functionality for new features
 -- Placeholder functions for Player Box and Player Trace
 local function togglePlayerBox()
     -- Implementation for creating a player box
@@ -123,15 +130,19 @@ end
 playerBoxToggle.MouseButton1Click:Connect(togglePlayerBox)
 playerTraceToggle.MouseButton1Click:Connect(togglePlayerTrace)
 
--- Connect home tab button
+-- Tab switching logic to show/hide pages
+local function switchToPage(page)
+    homePage.Visible = false
+    page.Visible = true
+end
+
 homeTab.MouseButton1Click:Connect(function()
-    homePage.Visible = true
-    -- Hide any other pages if existing
+    switchToPage(homePage)
 end)
 
 -- Minimize and close button functions
 minimizeButton.MouseButton1Click:Connect(function()
-    mainFrame.Visible = false
+    mainFrame.Visible = not mainFrame.Visible
     -- Add animation if desired
 end)
 
@@ -139,8 +150,6 @@ closeButton.MouseButton1Click:Connect(function()
     guide:Destroy()
     -- Uninject or remove any traces if needed
 end)
-
-Players.PlayerAdded:Connect(applyHighlight)
 
 sendNotification()
 
